@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://rn28qc0ylh07"]
+
+[ext_resource type="Script" path="res://networking.gd" id="1_geq4p"]
+[ext_resource type="PackedScene" uid="uid://bcy3t5u623g3m" path="res://Server_screen.tscn" id="2_o2saw"]
+
+[node name="Networking" type="Node"]
+script = ExtResource("1_geq4p")
+
+[node name="Node2D" parent="." instance=ExtResource("2_o2saw")]
