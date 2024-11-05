@@ -33,8 +33,8 @@ func send_user_info(username_recieved, password_recieved, mode_recieved):
 				message = 1
 			elif results.size() == 1:
 				message = 2
-				list_connected_user_info["username"] = username_recieved
-				list_connected_user_info["id"] = multiplayer.get_remote_sender_id()
+				list_connected_user_info["username"].append(username_recieved)
+				list_connected_user_info["id"].append(multiplayer.get_remote_sender_id()) 
 			else:
 				message = 3
 			user_login_confirm.rpc_id(id,message)
