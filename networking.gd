@@ -1,6 +1,5 @@
 extends Node
-@onready var connected_ids = $Node2D.connected_ids
-@onready var list_connected_user_info = $Node2D.list_connected_user_info
+@onready var list_connected_user_info = $Node2D.connected_user_info
 @onready var db = $Node2D.db
 var query:String
 var bindings:Array 
