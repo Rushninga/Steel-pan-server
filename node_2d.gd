@@ -8,8 +8,8 @@ var db_is_open = false
 @onready var main_display = $HBoxContainer/VBoxContainer/Label
 @onready var db_query = $HBoxContainer/VBoxContainer2/SQL_Query
 @onready var print_result = $HBoxContainer/VBoxContainer2/Label
+var mail_pass
 
-var MAIL_PASS = OS.get_environment("sever_gmail_password")
 
 var query
 var connected_user_info = {
@@ -19,14 +19,41 @@ var connected_user_info = {
 }
 signal login_confirm
 
+func SendEmail(emailto, emailfrom, subject, body):
 
+	var command_body = [
+		"$EmailFrom = '%s'" %[emailfrom],
+		"$EmailTo = '%s'" %[emailto],
+		"$Subject = '%s'"%[subject],
+		"$Body = '%s'" %[body],
+		"$SMTPServer = 'smtp.gmail.com'",
+		"$SMTPClient = New-Object Net.Mail.SmtpClient($SmtpServer, 587)",
+		"$SMTPClient.EnableSsl = $true",
+		"$SMTPClient.Credentials = New-Object System.Net.NetworkCredential('%s', '%s');"%["steelpanprojectsalcc@gmail.com", mail_pass],
+		"$SMTPClient.Send($EmailFrom, $EmailTo, $Subject, $Body)",
+	]
+
+	var commands = ""
+	var count = 1
+	for command in len(command_body):
+		if count != len(command_body):
+			commands += command_body[command] + "; "
+		else:
+			commands += command_body[command]
+		
+		count += 1
+
+	var output = []
+	OS.execute("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", [commands], output)
 
 
 func _ready():
+	mail_pass = OS.get_environment("sever_gmail_password")
 	multiplayer.peer_connected.connect(_on_player_connected)
 	multiplayer.peer_disconnected.connect(_on_player_disconnected)
 	db.path = "res://Main.db"
-	print(MAIL_PASS)
+	
+	SendEmail("shernanjankie3@gmail.com", "steelpanprojectsalcc@gmail.com", "hellow world", "Welcome to my game" )
 
 
 func _on_button_pressed(): #starts server
