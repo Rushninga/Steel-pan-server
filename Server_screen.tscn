@@ -2,10 +2,11 @@
 
 [ext_resource type="Script" path="res://node_2d.gd" id="1_rqn7x"]
 
-[node name="Node2D" type="Control"]
+[node name="Node2D" type="Control" node_paths=PackedStringArray("http")]
 layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_rqn7x")
+http = NodePath("HTTPRequest")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 0
@@ -61,8 +62,11 @@ layout_mode = 2
 size_flags_vertical = 0
 text = "Clear text"
 
+[node name="HTTPRequest" type="HTTPRequest" parent="."]
+
 [connection signal="pressed" from="HBoxContainer/VBoxContainer/Button2" to="." method="_on_button_2_pressed"]
 [connection signal="pressed" from="HBoxContainer/VBoxContainer/Button" to="." method="_on_button_pressed"]
 [connection signal="pressed" from="HBoxContainer/VBoxContainer2/Print" to="." method="_on_print_pressed"]
 [connection signal="pressed" from="HBoxContainer/VBoxContainer2/Print_loged_in_users" to="." method="_on_print_loged_in_users_pressed"]
 [connection signal="pressed" from="HBoxContainer/Clear" to="." method="_on_clear_pressed"]
+[connection signal="request_completed" from="HTTPRequest" to="." method="_on_http_request_request_completed"]

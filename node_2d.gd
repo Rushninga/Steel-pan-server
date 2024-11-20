@@ -5,55 +5,59 @@ var default_port = 8000
 var port
 var db = SQLite.new()
 var db_is_open = false
+var query
+
+
 @onready var main_display = $HBoxContainer/VBoxContainer/Label
 @onready var db_query = $HBoxContainer/VBoxContainer2/SQL_Query
 @onready var print_result = $HBoxContainer/VBoxContainer2/Label
-var mail_pass
+@export var http:HTTPRequest
+
+var api_key:String
 
 
-var query
 var connected_user_info = {
 	"username" : [],
 	"id" : []
 	
 }
 signal login_confirm
+var json
 
-func SendEmail(emailto, emailfrom, subject, body):
+var url = "https://api.brevo.com/v3/smtp/email"
 
-	var command_body = [
-		"$EmailFrom = '%s'" %[emailfrom],
-		"$EmailTo = '%s'" %[emailto],
-		"$Subject = '%s'"%[subject],
-		"$Body = '%s'" %[body],
-		"$SMTPServer = 'smtp.gmail.com'",
-		"$SMTPClient = New-Object Net.Mail.SmtpClient($SmtpServer, 587)",
-		"$SMTPClient.EnableSsl = $true",
-		"$SMTPClient.Credentials = New-Object System.Net.NetworkCredential('%s', '%s');"%["steelpanprojectsalcc@gmail.com", mail_pass],
-		"$SMTPClient.Send($EmailFrom, $EmailTo, $Subject, $Body)",
-	]
 
-	var commands = ""
-	var count = 1
-	for command in len(command_body):
-		if count != len(command_body):
-			commands += command_body[command] + "; "
-		else:
-			commands += command_body[command]
-		
-		count += 1
 
-	var output = []
-	OS.execute("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", [commands], output)
+var data= '{  
+   "sender":{  
+	  "name":"Sender Alex",
+	  "email":"steelpanprojectsimulator@gmail.com"
+   },
+   "to":[  
+	  {  
+		 "email":"steelpanprojectsimulator@gmail.com",
+		 "name":"John Doe"
+	  }
+   ],
+   "subject":"Hello world",
+   "htmlContent":"<html><head></head><body><p>Hello,</p>This is my first transactional email sent from Brevo.</p></body></html>"
+}'
+
+
+
+func _on_http_request_request_completed(result, response_code, headers, body):
+	var data = JSON.parse_string(body.get_string_from_utf8())
+	print(data)
+	pass # Replace with function body.
+
 
 
 func _ready():
-	mail_pass = OS.get_environment("sever_gmail_password")
+	api_key = OS.get_environment("email_api")
 	multiplayer.peer_connected.connect(_on_player_connected)
 	multiplayer.peer_disconnected.connect(_on_player_disconnected)
 	db.path = "res://Main.db"
-	
-	SendEmail("shernanjankie3@gmail.com", "steelpanprojectsalcc@gmail.com", "hellow world", "Welcome to my game" )
+	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,data)
 
 
 func _on_button_pressed(): #starts server
