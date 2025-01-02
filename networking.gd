@@ -1,5 +1,6 @@
 extends Node
-@onready var list_connected_user_info = $Node2D.connected_user_info
+@onready var user_info = $Node2D.connected_user_info
+@onready var user_class = $Node2D.user
 @onready var db = $Node2D.db
 var query:String
 var bindings:Array 
@@ -16,14 +17,16 @@ func _login_confirm():
 
 
 @rpc("any_peer", "reliable", "call_local")
-func send_user_info(username_recieved, password_recieved, mode_recieved):
+func send_user_info(username_received, email_received, password_received, mode_received):
 	if multiplayer.is_server():
 		var id = multiplayer.get_remote_sender_id()
-		if mode_recieved == "sign in":
-			
+		if mode_received == "sign in":
+			print(username_received)
+			print(password_received)
+			print(email_received)
 			pass
 		else:
-			bindings = [username_recieved, password_recieved]
+			bindings = [username_received, password_received]
 			query = "SELECT username,password FROM user_info WHERE username = ? AND password = ?;"
 			db.query_with_bindings(query, bindings)
 			var results = db.query_result
@@ -32,8 +35,7 @@ func send_user_info(username_recieved, password_recieved, mode_recieved):
 				message = 1
 			elif results.size() == 1:
 				message = 2
-				list_connected_user_info["username"].append(username_recieved)
-				list_connected_user_info["id"].append(multiplayer.get_remote_sender_id()) 
+				user_info.append(user_class.new(id,username_received,email_received))
 			else:
 				message = 3
 			user_login_confirm.rpc_id(id,message)

@@ -12,21 +12,9 @@ var query
 @onready var db_query = $HBoxContainer/VBoxContainer2/SQL_Query
 @onready var print_result = $HBoxContainer/VBoxContainer2/Label
 @export var http:HTTPRequest
-
-var api_key:String
-
-
-var connected_user_info = {
-	"username" : [],
-	"id" : []
-	
-}
-signal login_confirm
 var json
-
+var api_key:String
 var url = "https://api.brevo.com/v3/smtp/email"
-
-
 
 var data= '{  
    "sender":{  
@@ -43,21 +31,34 @@ var data= '{
    "htmlContent":"<html><head></head><body><p>Hello,</p>This is my first transactional email sent from Brevo.</p></body></html>"
 }'
 
+class user:
+	var id:int
+	var username:String
+	var email:String
+	func _init(id_sent, username_sent, email_sent):
+		id = id_sent
+		username = username_sent
+		email = email_sent #this remains null unless the user is registering their account
+		
+var connected_user_info = [] #list of all connected users
 
+signal login_confirm
 
 func _on_http_request_request_completed(result, response_code, headers, body):
-	var data = JSON.parse_string(body.get_string_from_utf8())
-	print(data)
-	pass # Replace with function body.
+	var response = JSON.parse_string(body.get_string_from_utf8())
+	print(response)
 
 
+func send_email(body):
+	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
+	pass
 
 func _ready():
 	api_key = OS.get_environment("email_api")
 	multiplayer.peer_connected.connect(_on_player_connected)
 	multiplayer.peer_disconnected.connect(_on_player_disconnected)
 	db.path = "res://Main.db"
-	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,data)
+	
 
 
 func _on_button_pressed(): #starts server
