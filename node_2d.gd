@@ -23,7 +23,7 @@ var data= '{
    },
    "to":[  
 	  {  
-		 "email":"steelpanprojectsimulator@gmail.com",
+		 "email":"testmail@example.com",
 		 "name":"John Doe"
 	  }
    ],
@@ -35,23 +35,40 @@ class user:
 	var id:int
 	var username:String
 	var email:String
+	var email_code:int
+	var user_mode:int
 	func _init(id_sent, username_sent, email_sent):
 		id = id_sent
 		username = username_sent
 		email = email_sent #this remains null unless the user is registering their account
+	
 		
 var connected_user_info = [] #list of all connected users
 
-signal login_confirm
+
 
 func _on_http_request_request_completed(result, response_code, headers, body):
 	var response = JSON.parse_string(body.get_string_from_utf8())
 	print(response)
 
 
-func send_email(body):
+func send_email(email,username,code):
+	var body = '{  
+   "sender":{  
+	  "name":"Sender Alex",
+	  "email":"steelpanprojectsimulator@gmail.com"
+   },
+   "to":[  
+	  {  
+		 "email":" ' +email+  ' ",
+		 "name":" ' +username+  '   "
+	  }
+   ],
+   "subject":"Hello world",
+   "htmlContent":"<html><head></head><body><p>Welocme to Steelpan Simulatir,</p>Here is your email verification code:' +str(code)+ '</p></body></html>"
+}'
 	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
-	pass
+	
 
 func _ready():
 	api_key = OS.get_environment("email_api")
