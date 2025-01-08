@@ -33,16 +33,18 @@ var data= '{
 
 class user:
 	var id:int
-	var username:String
-	var email:String
+	var username
+	var email
+	var password
 	var email_code:int
 	var user_mode:int
-	func _init(id_sent, username_sent, email_sent):
+	func _init(id_sent, username_sent, email_sent, password_sent):
 		id = id_sent
 		username = username_sent
 		email = email_sent #this remains null unless the user is registering their account
-	
-		
+		password = password_sent #this remains null unless the user is registering their account
+
+
 var connected_user_info = [] #list of all connected users
 
 
@@ -89,7 +91,8 @@ func _on_player_connected(id):
 	$HBoxContainer/VBoxContainer/Label.text += "Player " 
 	$HBoxContainer/VBoxContainer/Label.text += str(id)
 	$HBoxContainer/VBoxContainer/Label.text += " has connected\n"
-
+	var new_user = user.new(id,null,null,null)
+	connected_user_info.append(new_user)
 
 	
 
@@ -97,13 +100,16 @@ func _on_player_disconnected(id):
 	$HBoxContainer/VBoxContainer/Label.text += "Player " 
 	$HBoxContainer/VBoxContainer/Label.text += str(id)
 	$HBoxContainer/VBoxContainer/Label.text += " has disconnected\n"
-	
+	for i in connected_user_info:
+		if i.id == id:
+			connected_user_info.erase(i)
 	
 
 func _on_button_2_pressed(): #opens database
 	db.open_db()
 	db.foreign_keys = true
 	db.query("SELECT 1")
+	
 	#Checks if database open successfully with sql query
 	if db.error_message == "not an error":
 		$HBoxContainer/VBoxContainer/Label.text += "Database opened successfully \n"
@@ -120,15 +126,17 @@ func _on_print_pressed(): #process an sql query and prints the result
 	for i in db.query_result:
 		$HBoxContainer/VBoxContainer2/Label.text += str(i)
 		$HBoxContainer/VBoxContainer2/Label.text += "\n"
-	pass # Replace with function body.
+	
 
 
 func _on_clear_pressed():
-	$HBoxContainer/VBoxContainer/Label.text = ""
-	pass # Replace with function body.
+	$HBoxContainer/VBoxContainer/Label.text = host_address + "\n"
+	
+	
+	
 
 
 func _on_print_loged_in_users_pressed():
 	var json_connected_user_info = JSON.stringify(connected_user_info)
 	main_display.text += json_connected_user_info + "\n"
-	pass 
+	 
