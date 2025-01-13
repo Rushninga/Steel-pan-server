@@ -6,6 +6,12 @@ var port
 var db = SQLite.new()
 var db_is_open = false
 var query
+var crypto = Crypto.new()
+var db_key = crypto.generate_rsa(1028)
+var private_db_key = db_key.save_to_string()
+var public_db_key = db_key.save_to_string(true)
+
+var private_key = preload("res://resources/private_key.tres")
 
 
 @onready var main_display = $HBoxContainer/VBoxContainer/Label
@@ -47,11 +53,14 @@ class user:
 
 var connected_user_info = [] #list of all connected users
 
-
+class new_key:
+	var key
+	func _init(db_key):
+		key = db_key
 
 func _on_http_request_request_completed(result, response_code, headers, body):
 	var response = JSON.parse_string(body.get_string_from_utf8())
-	print(response)
+	$HBoxContainer/VBoxContainer/Label.text = response + "\n"
 
 
 func send_email(email,username,code):
@@ -66,7 +75,7 @@ func send_email(email,username,code):
 		 "name":" ' +username+  '   "
 	  }
    ],
-   "subject":"Hello world",
+   "subject":"Steelpan Simulator Verification Code",
    "htmlContent":"<html><head></head><body><p>Welocme to Steelpan Simulatir,</p>Here is your email verification code:' +str(code)+ '</p></body></html>"
 }'
 	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
@@ -77,8 +86,10 @@ func _ready():
 	multiplayer.peer_connected.connect(_on_player_connected)
 	multiplayer.peer_disconnected.connect(_on_player_disconnected)
 	db.path = "res://Main.db"
+	var key = private_key.duplicate()
+	key.key = private_db_key
+	ResourceSaver.save(key,"res://resources/"+ str(randf_range(0,1000)) +".tres")
 	
-
 
 func _on_button_pressed(): #starts server
 	server.create_server(default_port)
