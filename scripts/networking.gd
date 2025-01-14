@@ -7,15 +7,22 @@ extends Node
 @onready var user_info = $Node2D.connected_user_info
 @onready var user_class = $Node2D.user
 @onready var db = $Node2D.db
-
 var query:String
 var bindings:Array 
 
-
+#cryptograpy
+var crypto = Crypto.new()
+var net_key = crypto.generate_rsa(1028)
+var data = "Some data"
 
 func _ready():
+	multiplayer.peer_connected.connect(_on_player_connected)
 	pass
 
+func _on_player_connected(id):
+	print(net_key.save_to_string())
+	var encrypted = crypto.encrypt(net_key,data.to_utf8_buffer())
+	send_key.rpc_id(id,net_key.save_to_string(),encrypted)
 
 @rpc("any_peer", "reliable")
 func send_user_info(username_received, email_received, password_received, mode_received):
@@ -95,4 +102,8 @@ func sumbit_email_code(code):
 	
 @rpc("authority", "reliable")
 func valid_email_code(message):
+	pass
+
+@rpc("authority", "reliable")
+func send_key(message, test):
 	pass
