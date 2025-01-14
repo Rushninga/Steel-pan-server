@@ -55,7 +55,7 @@ var connected_user_info = [] #list of all connected users
 
 func _on_http_request_request_completed(result, response_code, headers, body):
 	var response = JSON.parse_string(body.get_string_from_utf8())
-	$HBoxContainer/VBoxContainer/Label.text = response + "\n"
+	$HBoxContainer/VBoxContainer/Label.text = str(response) + "\n"
 
 
 func send_email(email,username,code):
