@@ -52,6 +52,7 @@ func send_user_info(username_received, email_received, password_received, mode_r
 				valid_email.rpc_id(id,1)
 			
 			
+			
 		elif mode_received == "login":
 			bindings = [username_received]
 			query = "SELECT username,password FROM user_info WHERE username = ?;"
