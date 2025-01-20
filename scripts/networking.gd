@@ -7,8 +7,7 @@ extends Node
 @onready var user_info = $Node2D.connected_user_info
 @onready var user_class = $Node2D.user
 @onready var db = $Node2D.db
-var query:String
-var bindings:Array 
+
 
 #cryptograpy
 var crypto = Crypto.new()
@@ -35,8 +34,8 @@ func send_user_info(username_received, email_received, password_received, mode_r
 	if multiplayer.is_server():
 		var id = multiplayer.get_remote_sender_id()
 		if mode_received == "sign in":
-			bindings = [username_received, email_received]
-			query = "SELECT username, email FROM user_info WHERE username = ? OR email = ?"
+			var bindings = [username_received, email_received]
+			var query = "SELECT username, email FROM user_info WHERE username = ? OR email = ?"
 			db.query_with_bindings(query, bindings)
 			var results = db.query_result_by_reference
 			var message #0 = email is valid, 1 = email is already being used
@@ -55,8 +54,8 @@ func send_user_info(username_received, email_received, password_received, mode_r
 			
 			
 		elif mode_received == "login":
-			bindings = [username_received]
-			query = "SELECT username,password FROM user_info WHERE username = ?;"
+			var bindings = [username_received]
+			var query = "SELECT username,password FROM user_info WHERE username = ?;"
 			db.query_with_bindings(query, bindings)
 			var results = db.query_result_by_reference
 			var message
@@ -72,10 +71,7 @@ func send_user_info(username_received, email_received, password_received, mode_r
 
 
 				if password_received == utf8_plainpassword:
-					for i in user_info: #removes user id if theres a duplicate one in user info
-						if i.id == id :
-							user_info.erase(i)
-					
+					delete_session(id)
 					message = 2
 					var new_user = user_class.new(id,username_received,null,null)
 					new_user.email_code = 0 #this property should remain at 0 and  is only filled if the user is registering
@@ -112,8 +108,8 @@ func sumbit_email_code(code):
 				var cipherpassword = crypto.encrypt(db_key,password.to_utf8_buffer())
 				var base64_cipherpassword = Marshalls.raw_to_base64(cipherpassword)
 				
-				bindings = [i.username, i.email, base64_cipherpassword]
-				query = "INSERT INTO user_info (username, email, password)
+				var bindings = [i.username, i.email, base64_cipherpassword]
+				var query = "INSERT INTO user_info (username, email, password)
 						VALUES (? , ? , ?)"
 				db.query_with_bindings(query, bindings)
 				valid_email_code.rpc_id(id, 0) # 0 = code is correct, 1 = code is wrong
@@ -145,3 +141,15 @@ func log_out():
 	var id = multiplayer.get_remote_sender_id()
 	delete_session(id)
 	
+@rpc("any_peer", "reliable")
+func request_download_song():
+	var id = multiplayer.get_remote_sender_id()
+	var query = "SELECT * FROM song_info"
+	db.query(query)
+	var results = db.query_result_by_reference
+	for i in results:
+		download_song.rpc_id(id, i.songID, i.song_name, i.data)
+	
+@rpc("authority", "reliable")
+func download_song(song_id, song_name, song_data):
+	pass
