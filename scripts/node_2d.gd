@@ -43,6 +43,7 @@ class user:
 	var password
 	var email_code:int
 	var user_mode:int
+	var session_life = 108000
 	func _init(id_sent, username_sent, email_sent, password_sent):
 		id = id_sent
 		username = username_sent
@@ -76,6 +77,16 @@ func send_email(email,username,code):
 	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
 	
 
+func manage_sessions(d_time):
+	for i in connected_user_info:
+		i.session_life -= d_time
+		if i.session_life < 0:
+			connected_user_info.erase(i)
+
+func refresh_session(id, refresh_time):
+	for i in connected_user_info:
+		if i.id == id:
+			i.session_life = refresh_time
 
 
 func _ready():
@@ -85,7 +96,7 @@ func _ready():
 	db.path = "res://Main.db"
 	
 	
-	
+
 
 func _on_button_pressed(): #starts server
 	server.create_server(default_port)
@@ -144,6 +155,6 @@ func _on_clear_pressed():
 
 
 func _on_print_loged_in_users_pressed():
-	var json_connected_user_info = JSON.stringify(connected_user_info)
-	main_display.text += json_connected_user_info + "\n"
+	for i in connected_user_info:
+		main_display.text += "{" + "\n" + str(i.id) + "\n" + str(i.username) + "\n" + str(i.user_mode) + "\n" + str(i.session_life) + "\n" + "}" + "\n"
 	 

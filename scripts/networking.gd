@@ -16,16 +16,19 @@ var net_key = crypto.generate_rsa(1028)
 var data = "Some data"
 var db_key = CryptoKey.new()
 
+
+	
+func delete_session(id):
+	for i in user_info: 
+		if i.id == id :
+			user_info.erase(i)
+	
+
 func _ready():
-	multiplayer.peer_connected.connect(_on_player_connected)
 	db_key.load("res://keys/db_key.key")
 	
-
-	
-
-func _on_player_connected(id):
-	var encrypted = crypto.encrypt(net_key,data.to_utf8_buffer())
-	send_key.rpc_id(id,net_key.save_to_string(),encrypted)
+func _process(delta):
+	$Node2D.manage_sessions(delta)
 
 @rpc("any_peer", "reliable")
 func send_user_info(username_received, email_received, password_received, mode_received):
@@ -38,9 +41,7 @@ func send_user_info(username_received, email_received, password_received, mode_r
 			var results = db.query_result_by_reference
 			var message #0 = email is valid, 1 = email is already being used
 			if results.size() == 0:
-				for i in user_info: #removes user id if theres a duplicate one in user info
-					if i.id == id :
-						user_info.erase(i)
+				delete_session(id) #removes user id if theres a duplicate one in user info	
 				valid_email.rpc_id(id, 0)
 				var new_user = user_class.new(id,username_received,email_received,password_received)
 				new_user.user_mode = 2
@@ -125,6 +126,22 @@ func sumbit_email_code(code):
 func valid_email_code(message):
 	pass
 
+
+@rpc("any_peer", "reliable")
+func verify_session(): 
+	var id = multiplayer.get_remote_sender_id()
+	for i in user_info:
+		if i.id == id:
+			verify_session_response.rpc_id(id, 1) #1 = session is valid
+			return
+	verify_session_response.rpc_id(id,0) #0 = session is valid
+			
 @rpc("authority", "reliable")
-func send_key(message, test):
+func verify_session_response(message): #0 = session is valid, 1 = session is valid
 	pass
+	
+@rpc("any_peer", "reliable")
+func log_out():
+	var id = multiplayer.get_remote_sender_id()
+	delete_session(id)
+	
