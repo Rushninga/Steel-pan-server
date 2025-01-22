@@ -43,7 +43,8 @@ class user:
 	var password
 	var email_code:int
 	var user_mode:int
-	var session_life = 108000
+	var session_life:float = 1200
+	var download_songs_session:float
 	func _init(id_sent, username_sent, email_sent, password_sent):
 		id = id_sent
 		username = username_sent
@@ -82,11 +83,33 @@ func manage_sessions(d_time):
 		i.session_life -= d_time
 		if i.session_life < 0:
 			connected_user_info.erase(i)
+			return
 
 func refresh_session(id, refresh_time):
 	for i in connected_user_info:
 		if i.id == id:
 			i.session_life = refresh_time
+			return
+
+func create_download_songs_session(id):
+	for i in connected_user_info:
+		if i.id == id:
+			i.download_songs_session = randi_range(10000, 99999)
+			return i.download_songs_session
+			
+func verify_download_songs_session(id, session):
+	for i in connected_user_info:
+		if i.id == id:
+			if session == i.download_songs_session:
+				return true
+			else:
+				return false
+			
+func delete_download_songs_session(id):
+	for i in connected_user_info:
+		if i.id == id:
+			i.download_songs_session = 0
+			return
 
 
 func _ready():
@@ -156,5 +179,5 @@ func _on_clear_pressed():
 
 func _on_print_loged_in_users_pressed():
 	for i in connected_user_info:
-		main_display.text += "{" + "\n" + str(i.id) + "\n" + str(i.username) + "\n" + str(i.user_mode) + "\n" + str(i.session_life) + "\n" + "}" + "\n"
+		main_display.text += "{" + "\n" + str(i.id) + "\n" + str(i.username) + "\n" + str(i.user_mode) + "\n" + str(i.session_life) + "\n" + str(i.download_songs_session) + "\n" +"}" + "\n"
 	 

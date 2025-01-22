@@ -144,12 +144,25 @@ func log_out():
 @rpc("any_peer", "reliable")
 func request_download_song():
 	var id = multiplayer.get_remote_sender_id()
+	$Node2D.refresh_session(id, 1200)
+	var download_session = $Node2D.create_download_songs_session(id)
 	var query = "SELECT * FROM song_info"
 	db.query(query)
 	var results = db.query_result_by_reference
 	for i in results:
-		download_song.rpc_id(id, i.songID, i.song_name, i.data)
+		if $Node2D.verify_download_songs_session(id, download_session) == true:
+			download_song.rpc_id(id, i.songID, i.song_name, i.data)
+		else:
+			$Node2D.delete_download_songs_session(id)
+			return
+	$Node2D.delete_download_songs_session(id)
 	
 @rpc("authority", "reliable")
 func download_song(song_id, song_name, song_data):
+	pass
+	
+@rpc("any_peer", "reliable")
+func cancel_download_song():
+	var id = multiplayer.get_remote_sender_id()
+	$Node2D.delete_download_songs_session(id)
 	pass
