@@ -1,7 +1,6 @@
 #This is for the user class in connected_user_info
 #user modes for session mangement:
-# 0 = not loged in/registering   
-#1 = user is loged in     2 = user is registering    
+# 0 = not loged in/registering   #1 = user is loged in     2 = user is registering    
 
 extends Node
 @onready var user_info = $Node2D.connected_user_info
@@ -16,13 +15,11 @@ var data = "Some data"
 var db_key = CryptoKey.new()
 
 
-	
 func delete_session(id):
 	for i in user_info: 
 		if i.id == id :
 			user_info.erase(i)
 	
-
 func _ready():
 	db_key.load("res://keys/db_key.key")
 	
@@ -85,8 +82,7 @@ func send_user_info(username_received, email_received, password_received, mode_r
 			
 			user_login_confirm.rpc_id(id,message)
 			
-		
-		
+
 @rpc("authority", "unreliable_ordered")
 func user_login_confirm(message):
 	pass
@@ -117,11 +113,9 @@ func sumbit_email_code(code):
 			else:
 				valid_email_code.rpc_id(id, 1)
 			
-
 @rpc("authority", "reliable")
 func valid_email_code(message):
 	pass
-
 
 @rpc("any_peer", "reliable")
 func verify_session(): 
@@ -146,23 +140,106 @@ func request_download_song():
 	var id = multiplayer.get_remote_sender_id()
 	$Node2D.refresh_session(id, 1200)
 	var download_session = $Node2D.create_download_songs_session(id)
-	var query = "SELECT * FROM song_info"
+	var query = 	"SELECT t2.songID, t2.song_name, t2.userID, t2.data, t1.username
+					FROM song_info t2
+					JOIN user_info t1 ON t2.userID = t1.userID;"
 	db.query(query)
 	var results = db.query_result_by_reference
 	for i in results:
 		if $Node2D.verify_download_songs_session(id, download_session) == true:
-			download_song.rpc_id(id, i.songID, i.song_name, i.data)
+			download_song.rpc_id(id, i.songID, i.song_name, i.username, i.data)
 		else:
 			$Node2D.delete_download_songs_session(id)
 			return
 	$Node2D.delete_download_songs_session(id)
 	
 @rpc("authority", "reliable")
-func download_song(song_id, song_name, song_data):
+func download_song(song_id, song_name, creator_name, song_data):
 	pass
 	
 @rpc("any_peer", "reliable")
 func cancel_download_song():
 	var id = multiplayer.get_remote_sender_id()
 	$Node2D.delete_download_songs_session(id)
+	pass
+	
+
+@rpc("any_peer", "reliable")
+func request_rankings(song_id, score, accuracy):
+	var id = multiplayer.get_remote_sender_id()
+	if $Node2D.verify_session(id) == true:
+		var hscore:int
+		var haccuracy:float
+		var rank:int = 0
+		var bindings:Array
+		var query:String
+		var results:Array
+		var DBuserID:int #This is what the user id is in the databse
+		
+		#get username
+		var username
+		for i in user_info:
+			if i.id == id:
+				username = i.username
+		
+		#get userID in database
+		bindings = [username]
+		query = "SELECT userID FROM user_info
+					WHERE username = ?"
+		db.query_with_bindings(query, bindings)
+		results = db.query_result_by_reference
+		DBuserID = results[0].userID
+		
+		
+		
+		
+		#insert score and accuracy received by user into databse
+		bindings = [song_id, DBuserID, score, accuracy]
+		query = "INSERT INTO score_info (songID, userID, score, accuracy)
+					VALUES (?, ?, ?, ?)"
+		db.query_with_bindings(query, bindings)
+		
+		#get highest score
+		bindings = [song_id, DBuserID]
+		query = "SELECT max(score_info.score)
+					FROM score_info 
+					JOIN song_info ON song_info.songID = score_info.songID
+					JOIN user_info ON user_info.userID = score_info.userID
+					WHERE song_info.songID = ? AND user_info.userID = ?"
+		db.query_with_bindings(query, bindings)
+		results = db.query_result_by_reference
+		hscore = results[0]["max(score_info.score)"]
+		
+		#get highest accuracy
+		bindings = [song_id, DBuserID]
+		query = "SELECT max(score_info.accuracy)
+					FROM score_info 
+					JOIN song_info ON song_info.songID = score_info.songID
+					JOIN user_info ON user_info.userID = score_info.userID
+					WHERE song_info.songID = ? AND user_info.userID = ?"
+		db.query_with_bindings(query, bindings)
+		results = db.query_result_by_reference
+		haccuracy = results[0]["max(score_info.accuracy)"]
+		
+		
+		#get rank, this is based on soley accuracy
+		bindings = [song_id]
+		query = "SELECT score_info.accuracy FROM score_info
+					JOIN song_info ON song_info.songID = score_info.songID
+					WHERE song_info.songID = ?
+					ORDER BY accuracy ASC"
+		db.query_with_bindings(query, bindings)
+		results = db.query_result_by_reference
+		rank = results.size()
+		for i in results:
+			if accuracy > i.accuracy:
+				rank -= 1
+			else:
+				break
+		
+		
+		rankings.rpc_id(id,hscore,haccuracy, rank)
+
+@rpc("authority", "reliable")
+func rankings(score, accuracy, rank):
 	pass

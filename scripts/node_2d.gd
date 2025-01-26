@@ -42,7 +42,7 @@ class user:
 	var email
 	var password
 	var email_code:int
-	var user_mode:int
+	var user_mode:int # 0 = not loged in/registering   #1 = user is loged in     2 = user is registering    
 	var session_life:float = 1200
 	var download_songs_session:float
 	func _init(id_sent, username_sent, email_sent, password_sent):
@@ -54,6 +54,11 @@ class user:
 
 var connected_user_info = [] #list of all connected users
 
+func verify_session(id):
+	for i in connected_user_info:
+		if i.id == id and i.user_mode == 1:
+			return true
+	return false
 
 func _on_http_request_request_completed(result, response_code, headers, body):
 	var response = body.get_string_from_utf8()
@@ -132,10 +137,7 @@ func _on_player_connected(id):
 	$HBoxContainer/VBoxContainer/Label.text += "Player " 
 	$HBoxContainer/VBoxContainer/Label.text += str(id)
 	$HBoxContainer/VBoxContainer/Label.text += " has connected\n"
-	var new_user = user.new(id,null,null,null)
-	connected_user_info.append(new_user)
 
-	
 
 func _on_player_disconnected(id):
 	$HBoxContainer/VBoxContainer/Label.text += "Player " 
