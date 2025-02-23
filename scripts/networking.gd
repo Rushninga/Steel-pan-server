@@ -19,7 +19,20 @@ func delete_session(id):
 	for i in user_info: 
 		if i.id == id :
 			user_info.erase(i)
+
+func find_userID_in_db(username):
+	var bindings = []
+	var query
+	var results
 	
+	bindings = [username]
+	query = "SELECT userID FROM user_info
+				WHERE username = ?"
+	db.query_with_bindings(query, bindings)
+	results = db.query_result_by_reference
+	return results[0].userID
+	
+
 func _ready():
 	db_key.load("res://keys/db_key.key")
 	
@@ -163,10 +176,10 @@ func cancel_download_song():
 	$Node2D.delete_download_songs_session(id)
 	pass
 	
-
 @rpc("any_peer", "reliable")
 func request_rankings(song_id, score, accuracy):
 	var id = multiplayer.get_remote_sender_id()
+	$Node2D.refresh_session(id,3800) #refreshes the user session time
 	if $Node2D.verify_session(id) == true:
 		var hscore:int
 		var haccuracy:float
@@ -181,6 +194,7 @@ func request_rankings(song_id, score, accuracy):
 		for i in user_info:
 			if i.id == id:
 				username = i.username
+				break
 		
 		#get userID in database
 		bindings = [username]
@@ -189,9 +203,6 @@ func request_rankings(song_id, score, accuracy):
 		db.query_with_bindings(query, bindings)
 		results = db.query_result_by_reference
 		DBuserID = results[0].userID
-		
-		
-		
 		
 		#insert score and accuracy received by user into databse
 		bindings = [song_id, DBuserID, score, accuracy]
@@ -237,9 +248,43 @@ func request_rankings(song_id, score, accuracy):
 			else:
 				break
 		
-		
 		rankings.rpc_id(id,hscore,haccuracy, rank)
 
 @rpc("authority", "reliable")
 func rankings(score, accuracy, rank):
+	pass
+
+@rpc("any_peer", "reliable")
+func upload_song(song_name, song_json):
+	var id = multiplayer.get_remote_sender_id()
+	var username
+	var bindings:Array
+	var query:String
+	var results:Array
+	var DBuserID #This is what the user id is in the databse
+	
+	#get username
+	for i in user_info:
+		if i.id == id:
+			username = i.username
+			break
+	DBuserID = find_userID_in_db(username)
+	
+	bindings = [song_name]
+	query = "SELECT song_name FROM song_info WHERE song_name = ?"
+	db.query_with_bindings(query, bindings)
+	results = db.query_result_by_reference
+	
+	if results.size() == 0:
+		bindings = [song_name, song_json, DBuserID]
+		query = "INSERT INTO song_info(song_name, data, userID)
+				VALUES (?, ?, ?)"
+		db.query_with_bindings(query, bindings)
+		valid_song_name.rpc_id(id, 0)
+	else:
+		valid_song_name.rpc_id(id, 1)
+	
+
+@rpc("authority", "reliable")
+func valid_song_name(message):
 	pass
