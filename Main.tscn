@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://rn28qc0ylh07"]
 
-[ext_resource type="Script" path="res://scripts/networking.gd" id="1_geq4p"]
+[ext_resource type="Script" uid="uid://bf4xn8wwx8xdt" path="res://scripts/networking.gd" id="1_geq4p"]
 [ext_resource type="PackedScene" uid="uid://bcy3t5u623g3m" path="res://Server_screen.tscn" id="2_o2saw"]
 
 [node name="Networking" type="Node"]
