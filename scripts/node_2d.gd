@@ -45,6 +45,7 @@ class user:
 	var user_mode:int # 0 = not loged in/registering   #1 = user is loged in     2 = user is registering    
 	var session_life:float = 1200
 	var download_songs_session:float
+	var cpassword_code:int #verification code to change password, this value equals 1 if the code is verified, if not it is put to 0 
 	func _init(id_sent, username_sent, email_sent, password_sent):
 		id = id_sent
 		username = username_sent
@@ -54,7 +55,7 @@ class user:
 
 var connected_user_info = [] #list of all connected users
 
-func verify_session(id):
+func verify_session(id): #checks if user exsists and if user is logged in
 	for i in connected_user_info:
 		if i.id == id and i.user_mode == 1:
 			return true
@@ -68,7 +69,7 @@ func _on_http_request_request_completed(result, response_code, headers, body):
 func send_email(email,username,code):
 	var body = '{  
    "sender":{  
-	  "name":"Sender Alex",
+	  "name":"Shernan Jankie",
 	  "email":"steelpanprojectsimulator@gmail.com"
    },
    "to":[  
@@ -78,10 +79,27 @@ func send_email(email,username,code):
 	  }
    ],
    "subject":"Steelpan Simulator Verification Code",
-   "htmlContent":"<html><head></head><body><p>Welocme to Steelpan Simulatir,</p>Here is your email verification code:' +str(code)+ '</p></body></html>"
+   "htmlContent":"<html><head></head><body><p>Welcome to Steelpan Simulator,</p>Here is your email verification code:' +str(code)+ '</p></body></html>"
 }'
 	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
 	
+
+func send_email_password_change(email,username,code):
+	var body = '{  
+   "sender":{  
+	  "name":"Shernan Jankie",
+	  "email":"steelpanprojectsimulator@gmail.com"
+   },
+   "to":[  
+	  {  
+		 "email":" ' +email+  ' ",
+		 "name":" ' +username+  '   "
+	  }
+   ],
+   "subject":"Steelpan Simulator Verification Code",
+   "htmlContent":"<html><head></head><body><p>Good day '+ username + ',</p>We see you are trying to change your password <br>Here is your email verification code:' +str(code)+ '</p></body></html>"
+}'
+	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
 
 func manage_sessions(d_time):
 	for i in connected_user_info:

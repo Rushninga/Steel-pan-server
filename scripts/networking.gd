@@ -32,6 +32,17 @@ func find_userID_in_db(username):
 	results = db.query_result_by_reference
 	return results[0].userID
 	
+func find_user_email(username):
+	var bindings = []
+	var query
+	var results
+	
+	bindings = [username]
+	query = "SELECT email FROM user_info
+				WHERE username = ?"
+	db.query_with_bindings(query, bindings)
+	results = db.query_result_by_reference
+	return results[0].email
 
 func _ready():
 	db_key.load("res://keys/db_key.key")
@@ -131,16 +142,16 @@ func valid_email_code(message):
 	pass
 
 @rpc("any_peer", "reliable")
-func verify_session(): 
+func verify_session(): #0 = session is invalid, 1 = session is valid
 	var id = multiplayer.get_remote_sender_id()
 	for i in user_info:
 		if i.id == id:
 			verify_session_response.rpc_id(id, 1) #1 = session is valid
 			return
-	verify_session_response.rpc_id(id,0) #0 = session is valid
+	verify_session_response.rpc_id(id,0) #0 = session is invalid
 			
 @rpc("authority", "reliable")
-func verify_session_response(message): #0 = session is valid, 1 = session is valid
+func verify_session_response(message): #0 = session is invalid, 1 = session is valid
 	pass
 	
 @rpc("any_peer", "reliable")
@@ -151,20 +162,22 @@ func log_out():
 @rpc("any_peer", "reliable")
 func request_download_song():
 	var id = multiplayer.get_remote_sender_id()
-	$Node2D.refresh_session(id, 1200)
-	var download_session = $Node2D.create_download_songs_session(id)
-	var query = 	"SELECT t2.songID, t2.song_name, t2.userID, t2.data, t1.username
-					FROM song_info t2
-					JOIN user_info t1 ON t2.userID = t1.userID;"
-	db.query(query)
-	var results = db.query_result_by_reference
-	for i in results:
-		if $Node2D.verify_download_songs_session(id, download_session) == true:
-			download_song.rpc_id(id, i.songID, i.song_name, i.username, i.data)
-		else:
-			$Node2D.delete_download_songs_session(id)
-			return
-	$Node2D.delete_download_songs_session(id)
+	
+	if $Node2D.verify_session(id) == true:
+		$Node2D.refresh_session(id, 1200)
+		var download_session = $Node2D.create_download_songs_session(id)
+		var query = 	"SELECT t2.songID, t2.song_name, t2.userID, t2.data, t1.username
+						FROM song_info t2
+						JOIN user_info t1 ON t2.userID = t1.userID;"
+		db.query(query)
+		var results = db.query_result_by_reference
+		for i in results:
+			if $Node2D.verify_download_songs_session(id, download_session) == true:
+				download_song.rpc_id(id, i.songID, i.song_name, i.username, i.data)
+			else:
+				$Node2D.delete_download_songs_session(id)
+				return
+		$Node2D.delete_download_songs_session(id)
 	
 @rpc("authority", "reliable")
 func download_song(song_id, song_name, creator_name, song_data):
@@ -179,8 +192,9 @@ func cancel_download_song():
 @rpc("any_peer", "reliable")
 func request_rankings(song_id, score, accuracy):
 	var id = multiplayer.get_remote_sender_id()
-	$Node2D.refresh_session(id,3800) #refreshes the user session time
 	if $Node2D.verify_session(id) == true:
+		$Node2D.refresh_session(id,1200) #refreshes the user session time
+		
 		var hscore:int
 		var haccuracy:float
 		var rank:int = 0
@@ -263,28 +277,86 @@ func upload_song(song_name, song_json):
 	var results:Array
 	var DBuserID #This is what the user id is in the databse
 	
-	#get username
-	for i in user_info:
-		if i.id == id:
-			username = i.username
-			break
-	DBuserID = find_userID_in_db(username)
-	
-	bindings = [song_name]
-	query = "SELECT song_name FROM song_info WHERE song_name = ?"
-	db.query_with_bindings(query, bindings)
-	results = db.query_result_by_reference
-	
-	if results.size() == 0:
-		bindings = [song_name, song_json, DBuserID]
-		query = "INSERT INTO song_info(song_name, data, userID)
-				VALUES (?, ?, ?)"
+	if $Node2D.verify_session(id) == true:
+		$Node2D.refresh_session(id,1200) #refreshes the user session time
+		
+		#get username
+		for i in user_info:
+			if i.id == id:
+				username = i.username
+				break
+		DBuserID = find_userID_in_db(username)
+		
+		bindings = [song_name]
+		query = "SELECT song_name FROM song_info WHERE song_name = ?"
 		db.query_with_bindings(query, bindings)
-		valid_song_name.rpc_id(id, 0)
-	else:
-		valid_song_name.rpc_id(id, 1)
+		results = db.query_result_by_reference
+		
+		if results.size() == 0:
+			bindings = [song_name, song_json, DBuserID]
+			query = "INSERT INTO song_info(song_name, data, userID)
+					VALUES (?, ?, ?)"
+			db.query_with_bindings(query, bindings)
+			valid_song_name.rpc_id(id, 0)
+		else:
+			valid_song_name.rpc_id(id, 1)
 	
 
 @rpc("authority", "reliable")
 func valid_song_name(message):
+	pass
+	
+
+@rpc("any_peer", "reliable")
+func change_password():
+	var id = multiplayer.get_remote_sender_id()
+	if $Node2D.verify_session(id) == true:
+		for i in user_info:
+			if i.id == id:
+				var email = find_user_email(i.username)
+				i.cpassword_code = randi_range(1000, 9999)
+				$Node2D.send_email_password_change(email, i.username, i.cpassword_code)
+	
+
+@rpc("any_peer", "reliable")
+func cpassword_code(code): # 0 = code is valid, 1 = code is invalid
+	var id = multiplayer.get_remote_sender_id()
+	if $Node2D.verify_session(id) == true:
+		for i in user_info:
+			if i.id == id:
+				if str(i.cpassword_code) == code:
+					$Node2D.refresh_session(id,1200) #refreshes the user session time
+					i.cpassword_code = 1
+					cpassword_code_response.rpc_id(id, 0) #code is valid
+				else:
+					cpassword_code_response.rpc_id(id, 1) #code is invalid
+
+@rpc("authority", "reliable")
+func cpassword_code_response(message): # 0 = code is valid, 1 = code is invalid
+	pass
+
+@rpc("any_peer", "reliable")
+func change_password_to(password):
+	var id = multiplayer.get_remote_sender_id()
+	
+	if $Node2D.verify_session(id) == true:
+		for i in user_info:
+			if i.id == id:
+				if i.cpassword_code == 1:
+					var cipherpassword = crypto.encrypt(db_key,password.to_utf8_buffer())
+					var base64_cipherpassword = Marshalls.raw_to_base64(cipherpassword)
+					
+					var userDB_id = find_userID_in_db(i.username)
+					print(userDB_id)
+					var bindings = [base64_cipherpassword, userDB_id]
+					var query = "UPDATE user_info
+								 SET password = ?
+								 WHERE userID = ?"
+					db.query_with_bindings(query, bindings)
+					change_password_to_response.rpc_id(id, 0)
+				else:
+					change_password_to_response.rpc_id(id, 1)
+
+@rpc("authority", "reliable")
+func change_password_to_response(message): # 1 = error occured
 	pass
