@@ -72,8 +72,7 @@ func send_user_info(username_received, email_received, password_received, mode_r
 			else:
 				valid_email.rpc_id(id,1)
 			
-			
-			
+
 		elif mode_received == "login":
 			var bindings = [username_received]
 			var query = "SELECT username,password FROM user_info WHERE username = ?;"
@@ -106,7 +105,6 @@ func send_user_info(username_received, email_received, password_received, mode_r
 			
 			user_login_confirm.rpc_id(id,message)
 			
-
 @rpc("authority", "unreliable_ordered")
 func user_login_confirm(message):
 	pass
@@ -301,12 +299,10 @@ func upload_song(song_name, song_json):
 		else:
 			valid_song_name.rpc_id(id, 1)
 	
-
 @rpc("authority", "reliable")
 func valid_song_name(message):
 	pass
 	
-
 @rpc("any_peer", "reliable")
 func change_password():
 	var id = multiplayer.get_remote_sender_id()
@@ -359,4 +355,28 @@ func change_password_to(password):
 
 @rpc("authority", "reliable")
 func change_password_to_response(message): # 1 = error occured
+	pass
+
+@rpc("any_peer", "reliable")
+func forgot_password(username):
+	var id = multiplayer.get_remote_sender_id()
+	var bindings = [username]
+	var query = "SELECT email, password FROM user_info WHERE username = ?"
+	db.query_with_bindings(query, bindings)
+	var results = db.query_result_by_reference
+
+	if results.size() > 0:
+		var email = results[0].email
+		var password = results[0].password #assigns base64 password string
+		var raw_cipherpassword:PackedByteArray = Marshalls.base64_to_raw(password) #converts base64 to bytearray
+		var plainpassword:PackedByteArray = crypto.decrypt(db_key,raw_cipherpassword) #decypts bytearray
+		var utf8_plainpassword:String = plainpassword.get_string_from_utf8()
+		
+		$Node2D.send_email_forgot_password(email, username, utf8_plainpassword)
+		forgot_password_response.rpc_id(id, 0) #0 = account exsists, 1 = account doesn't exsist
+	else:
+		forgot_password_response.rpc_id(id, 1) #0 = account exsists, 1 = account doesn't exsist
+		
+@rpc("authority", "reliable")
+func forgot_password_response(message):  #0 = account exsists, 1 = account doesn't exsist
 	pass

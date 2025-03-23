@@ -21,6 +21,8 @@ var json
 var api_key:String
 var url = "https://api.brevo.com/v3/smtp/email"
 
+
+#region email data
 var data= '{  
    "sender":{  
 	  "name":"Sender Alex",
@@ -35,6 +37,8 @@ var data= '{
    "subject":"Hello world",
    "htmlContent":"<html><head></head><body><p>Hello,</p>This is my first transactional email sent from Brevo.</p></body></html>"
 }'
+#endregion
+
 
 class user:
 	var id:int
@@ -65,7 +69,6 @@ func _on_http_request_request_completed(result, response_code, headers, body):
 	var response = body.get_string_from_utf8()
 	$HBoxContainer/VBoxContainer/Label.text = str(response) + "\n"
 
-
 func send_email(email,username,code):
 	var body = '{  
    "sender":{  
@@ -79,11 +82,10 @@ func send_email(email,username,code):
 	  }
    ],
    "subject":"Steelpan Simulator Verification Code",
-   "htmlContent":"<html><head></head><body><p>Welcome to Steelpan Simulator,</p>Here is your email verification code:' +str(code)+ '</p></body></html>"
+   "htmlContent":"<html><head></head><body><p>Welcome to Steelpan Simulator,</p>Here is your email verification code: ' +str(code)+ '</p></body></html>"
 }'
 	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
 	
-
 func send_email_password_change(email,username,code):
 	var body = '{  
    "sender":{  
@@ -97,7 +99,24 @@ func send_email_password_change(email,username,code):
 	  }
    ],
    "subject":"Steelpan Simulator Verification Code",
-   "htmlContent":"<html><head></head><body><p>Good day '+ username + ',</p>We see you are trying to change your password <br>Here is your email verification code:' +str(code)+ '</p></body></html>"
+   "htmlContent":"<html><head></head><body><p>Good day '+ username + ',</p>We see you are trying to change your password <br>Here is your email verification code: ' +str(code)+ '</p></body></html>"
+}'
+	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
+
+func send_email_forgot_password(email, username, password):
+	var body = '{  
+   "sender":{  
+	  "name":"Shernan Jankie",
+	  "email":"steelpanprojectsimulator@gmail.com"
+   },
+   "to":[  
+	  {  
+		 "email":" ' +email+  ' ",
+		 "name":" ' +username+  '   "
+	  }
+   ],
+   "subject":"Steelpan Simulator Verification Code",
+   "htmlContent":"<html><head></head><body><p>Hello '+ username +',</p>We see you have forgotten your password.<br>Here is your password: '+ password +'</p></body></html>"
 }'
 	http.request(url, ["api-key:" + api_key],HTTPClient.METHOD_POST,body)
 
