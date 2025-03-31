@@ -75,11 +75,11 @@ func send_user_info(username_received, email_received, password_received, mode_r
 
 		elif mode_received == "login":
 			var bindings = [username_received]
-			var query = "SELECT username,password FROM user_info WHERE username = ?;"
+			var query = "SELECT username,password,email FROM user_info WHERE username = ?;"
 			db.query_with_bindings(query, bindings)
 			var results = db.query_result_by_reference
 			var message
-			
+			var r_email = ""
 			if results.is_empty(): #sends a login confirmation to client, 1 == username or password is incorrect, 1 is login was sucessful and 3 is unknown error 
 				message = 1
 				
@@ -97,16 +97,17 @@ func send_user_info(username_received, email_received, password_received, mode_r
 					new_user.email_code = 0 #this property should remain at 0 and  is only filled if the user is registering
 					new_user.user_mode = 1 # this indicates the user is loged in
 					user_info.append(new_user)
+					r_email = results[0].email
 				else:
 					message = 1
 				
 			else:
 				message = 3 #indicates there is duplicate user infomation thus something is wrong with the database
 			
-			user_login_confirm.rpc_id(id,message)
+			user_login_confirm.rpc_id(id,message,r_email)
 			
 @rpc("authority", "unreliable_ordered")
-func user_login_confirm(message):
+func user_login_confirm(message, email = ""):
 	pass
 
 #email verification
