@@ -75,11 +75,12 @@ func send_user_info(username_received, email_received, password_received, mode_r
 
 		elif mode_received == "login":
 			var bindings = [username_received]
-			var query = "SELECT username,password,email FROM user_info WHERE username = ?;"
+			var query = "SELECT username,password,email,admin FROM user_info WHERE username = ?;"
 			db.query_with_bindings(query, bindings)
 			var results = db.query_result_by_reference
 			var message
 			var r_email = ""
+			var is_admin:bool
 			if results.is_empty(): #sends a login confirmation to client, 1 == username or password is incorrect, 1 is login was sucessful and 3 is unknown error 
 				message = 1
 				
@@ -93,7 +94,14 @@ func send_user_info(username_received, email_received, password_received, mode_r
 				if password_received == utf8_plainpassword:
 					delete_session(id)
 					message = 2
-					var new_user = user_class.new(id,username_received,null,null)
+					
+					#checks to see if the user is an admin, 0 = user is not an admin, 1 = user is an admin
+					if(results[0].admin == 0):
+						is_admin = false
+					else:
+						is_admin = true
+					
+					var new_user = user_class.new(id,username_received,null,null,is_admin)
 					new_user.email_code = 0 #this property should remain at 0 and  is only filled if the user is registering
 					new_user.user_mode = 1 # this indicates the user is loged in
 					user_info.append(new_user)
@@ -254,7 +262,7 @@ func request_rankings(song_id, score, accuracy):
 					ORDER BY accuracy ASC"
 		db.query_with_bindings(query, bindings)
 		results = db.query_result_by_reference
-		rank = results.size()
+		rank = results.size() 
 		for i in results:
 			if accuracy > i.accuracy:
 				rank -= 1
@@ -380,4 +388,66 @@ func forgot_password(username):
 		
 @rpc("authority", "reliable")
 func forgot_password_response(message):  #0 = account exsists, 1 = account doesn't exsist
+	pass
+
+@rpc("any_peer", "reliable")
+func admin_info_request():
+	var id = multiplayer.get_remote_sender_id()
+	
+	for i in user_info:
+		if i.id == id and i.admin == true:
+			#creation of download session
+			$Node2D.refresh_session(id, 1200)
+			var download_session = $Node2D.create_download_songs_session(id)
+			
+			#download user_info
+			var query = "SELECT username, email FROM user_info"
+			db.query(query)
+			var results = db.query_result_by_reference
+			for temp in results:
+				if $Node2D.verify_download_songs_session(id, download_session) == true:
+					admin_info_response.rpc_id(id, "user", temp.username, temp.email, "","",null,null)
+				else:
+					$Node2D.delete_download_songs_session(id)
+					return
+			
+			#download song_info
+			query = "SELECT song_info.song_name, user_info.username FROM song_info
+					JOIN user_info ON song_info.userID == user_info.userID"
+			db.query(query)
+			results = db.query_result_by_reference
+			for temp in results:
+				if $Node2D.verify_download_songs_session(id, download_session) == true:
+					admin_info_response.rpc_id(id, "song", "", "", temp.song_name, temp.username,null,null)
+				else:
+					$Node2D.delete_download_songs_session(id)
+					return
+			
+			#download score_info
+			query = "SELECT song_info.song_name, user_info.username, score_info.accuracy FROM score_info
+					JOIN user_info ON score_info.userID = user_info.userID
+					JOIN song_info ON score_info.userID = song_info.userID"
+			db.query(query)
+			results = db.query_result_by_reference
+			for temp in results:
+				if $Node2D.verify_download_songs_session(id, download_session) == true:
+					admin_info_response.rpc_id(id, "score", temp.username, "", temp.song_name,"",temp.accuracy)
+				else:
+					$Node2D.delete_download_songs_session(id)
+					return
+			
+			$Node2D.delete_download_songs_session(id)
+			return
+		else:
+			admin_info_response.rpc_id(id, "not admin", "", "", "", "",null,null)
+			return
+	pass
+	
+@rpc("authority", "reliable")
+func admin_info_response(type:String, username:String, email:String, song_name:String, creator:String, accuracy, rank):
+	
+	pass
+
+@rpc("any_peer", "reliable")
+func admin_info_cancel():
 	pass

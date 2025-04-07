@@ -50,11 +50,13 @@ class user:
 	var session_life:float = 1200
 	var download_songs_session:float
 	var cpassword_code:int #verification code to change password, this value equals 1 if the code is verified, if not it is put to 0 
-	func _init(id_sent, username_sent, email_sent, password_sent):
+	var admin:bool
+	func _init(id_sent, username_sent, email_sent, password_sent, admin_sent):
 		id = id_sent
 		username = username_sent
 		email = email_sent #this remains null unless the user is registering their account
 		password = password_sent #this remains null unless the user is registering their account
+		admin = admin_sent #determines if the user is an admin or not
 
 
 var connected_user_info = [] #list of all connected users
