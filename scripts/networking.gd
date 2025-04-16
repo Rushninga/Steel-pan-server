@@ -63,7 +63,7 @@ func send_user_info(username_received, email_received, password_received, mode_r
 			if results.size() == 0:
 				delete_session(id) #removes user id if theres a duplicate one in user info	
 				valid_email.rpc_id(id, 0)
-				var new_user = user_class.new(id,username_received,email_received,password_received)
+				var new_user = user_class.new(id,username_received,email_received,password_received,false)
 				new_user.user_mode = 2
 				var email_code = randi_range(1000, 9999)
 				new_user.email_code = email_code
@@ -352,7 +352,6 @@ func change_password_to(password):
 					var base64_cipherpassword = Marshalls.raw_to_base64(cipherpassword)
 					
 					var userDB_id = find_userID_in_db(i.username)
-					print(userDB_id)
 					var bindings = [base64_cipherpassword, userDB_id]
 					var query = "UPDATE user_info
 								 SET password = ?
@@ -380,7 +379,7 @@ func forgot_password(username):
 		var raw_cipherpassword:PackedByteArray = Marshalls.base64_to_raw(password) #converts base64 to bytearray
 		var plainpassword:PackedByteArray = crypto.decrypt(db_key,raw_cipherpassword) #decypts bytearray
 		var utf8_plainpassword:String = plainpassword.get_string_from_utf8()
-		
+		print(email)
 		$Node2D.send_email_forgot_password(email, username, utf8_plainpassword)
 		forgot_password_response.rpc_id(id, 0) #0 = account exsists, 1 = account doesn't exsist
 	else:
@@ -396,6 +395,9 @@ func admin_info_request():
 	
 	for i in user_info:
 		if i.id == id and i.admin == true:
+			var db_id = find_userID_in_db(i.username)
+			
+			
 			#creation of download session
 			$Node2D.refresh_session(id, 1200)
 			var download_session = $Node2D.create_download_songs_session(id)
@@ -424,10 +426,12 @@ func admin_info_request():
 					return
 			
 			#download score_info
+			var bindings = [db_id]
 			query = "SELECT song_info.song_name, user_info.username, score_info.accuracy FROM score_info
 					JOIN user_info ON score_info.userID = user_info.userID
-					JOIN song_info ON score_info.userID = song_info.userID"
-			db.query(query)
+					JOIN song_info ON score_info.userID = song_info.userID
+					WHERE user_info.lecturerID = ?"
+			db.query_with_bindings(query, bindings)
 			results = db.query_result_by_reference
 			for temp in results:
 				if $Node2D.verify_download_songs_session(id, download_session) == true:

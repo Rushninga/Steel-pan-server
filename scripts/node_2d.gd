@@ -20,6 +20,7 @@ var query
 var json
 var api_key:String
 var url = "https://api.brevo.com/v3/smtp/email"
+var url2 = "https://api.mailersend.com/v1/email"
 
 
 #region email data
@@ -68,9 +69,10 @@ func verify_session(id): #checks if user exsists and if user is logged in
 	return false
 
 func _on_http_request_request_completed(result, response_code, headers, body):
-	var response = body.get_string_from_utf8()
-	$HBoxContainer/VBoxContainer/Label.text = str(response) + "\n"
-
+	var response = JSON.parse_string(body.get_string_from_utf8())
+	$HBoxContainer/VBoxContainer/Label.text += str(response) + "\n"
+	print(response_code)
+	
 func send_email(email,username,code):
 	var body = '{  
    "sender":{  
@@ -157,7 +159,7 @@ func delete_download_songs_session(id):
 
 
 func _ready():
-	api_key = OS.get_environment("email_api")
+	api_key = "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"
 	multiplayer.peer_connected.connect(_on_player_connected)
 	multiplayer.peer_disconnected.connect(_on_player_disconnected)
 	db.path = "res://Main.db"
