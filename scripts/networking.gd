@@ -14,7 +14,27 @@ var net_key = crypto.generate_rsa(1028)
 var data = "Some data"
 var db_key = CryptoKey.new()
 
-
+func valid_song_data(song_data:String):
+	var json = JSON.parse_string(song_data)
+	if json == null:
+		return false
+	
+	if not (json is Array):
+		return false
+		
+	for i in json:
+		if not (i is Dictionary):
+			return false
+		else:
+			if not i.has("note") or typeof(i.note) != TYPE_STRING:
+				return false
+			if not i.has("start") or (typeof(i.start) != TYPE_FLOAT and typeof(i.start) != TYPE_INT) or i.start < 0:
+				return false
+			if not i.has("end") or (typeof(i.end) != TYPE_FLOAT and typeof(i.end) != TYPE_INT) or i.end < i.start:
+				return false
+	
+	return true
+	
 func delete_session(id):
 	for i in user_info: 
 		if i.id == id :
@@ -50,10 +70,23 @@ func _ready():
 func _process(delta):
 	$Node2D.manage_sessions(delta)
 
-@rpc("any_peer", "reliable")
+@rpc("any_peer", "reliable")#valid data need
 func send_user_info(username_received, email_received, password_received, mode_received):
 	if multiplayer.is_server():
 		var id = multiplayer.get_remote_sender_id()
+		if typeof(username_received) != TYPE_STRING:
+			user_login_confirm.rpc_id(id,-1)
+			return
+		if typeof(email_received) != TYPE_STRING:
+			user_login_confirm.rpc_id(id,-1)
+			return
+		if typeof(password_received) != TYPE_STRING:
+			user_login_confirm.rpc_id(id,-1)
+			return
+		if typeof(mode_received) != TYPE_STRING:
+			user_login_confirm.rpc_id(id,-1)
+			return
+
 		if mode_received == "sign in":
 			var bindings = [username_received, email_received]
 			var query = "SELECT username, email FROM user_info WHERE username = ? OR email = ?"
@@ -113,6 +146,8 @@ func send_user_info(username_received, email_received, password_received, mode_r
 				message = 3 #indicates there is duplicate user infomation thus something is wrong with the database
 			
 			user_login_confirm.rpc_id(id,message,r_email)
+		else:
+			user_login_confirm.rpc_id(id,-1)
 			
 @rpc("authority", "unreliable_ordered")
 func user_login_confirm(message, email = ""):
@@ -125,10 +160,14 @@ func valid_email(message):
 	pass
 	
 #verify email 
-@rpc("any_peer", "reliable")
+@rpc("any_peer", "reliable")#valid data need
 func sumbit_email_code(code):
 	var id = multiplayer.get_remote_sender_id()
 	for i in user_info:
+		if typeof(code) != TYPE_STRING:
+			valid_email_code.rpc_id(id, -1)
+			return
+
 		if i.id == id:
 			if str(i.email_code) == code:
 				var password = str(i.password) 
@@ -196,10 +235,18 @@ func cancel_download_song():
 	$Node2D.delete_download_songs_session(id)
 	pass
 	
-@rpc("any_peer", "reliable")
+@rpc("any_peer", "reliable")#valid data need
 func request_rankings(song_id, score, accuracy):
 	var id = multiplayer.get_remote_sender_id()
 	if $Node2D.verify_session(id) == true:
+		if typeof(song_id) != TYPE_INT:
+			return
+		if typeof(score) != TYPE_INT:
+			return
+		if typeof(accuracy) != TYPE_FLOAT:
+			return
+		
+		
 		$Node2D.refresh_session(id,1200) #refreshes the user session time
 		
 		var hscore:int
@@ -285,6 +332,17 @@ func upload_song(song_name, song_json):
 	var DBuserID #This is what the user id is in the databse
 	
 	if $Node2D.verify_session(id) == true:
+		#verifies data
+		if typeof(song_name) != TYPE_STRING:
+			valid_song_name.rpc_id(id, -1)
+			return
+		if typeof(song_json) != TYPE_STRING:
+			valid_song_name.rpc_id(id, -1)
+			return
+		if valid_song_data(song_json) == false:
+			valid_song_name.rpc_id(id, -1)
+			return
+		
 		$Node2D.refresh_session(id,1200) #refreshes the user session time
 		
 		#get username
@@ -323,9 +381,13 @@ func change_password():
 				$Node2D.send_email_password_change(email, i.username, i.cpassword_code)
 	
 
-@rpc("any_peer", "reliable")
+@rpc("any_peer", "reliable") #valid data need
 func cpassword_code(code): # 0 = code is valid, 1 = code is invalid
 	var id = multiplayer.get_remote_sender_id()
+	
+	if typeof(code) != TYPE_STRING:
+		cpassword_code_response.rpc_id(id, -1)
+	
 	if $Node2D.verify_session(id) == true:
 		for i in user_info:
 			if i.id == id:
@@ -340,9 +402,13 @@ func cpassword_code(code): # 0 = code is valid, 1 = code is invalid
 func cpassword_code_response(message): # 0 = code is valid, 1 = code is invalid
 	pass
 
-@rpc("any_peer", "reliable")
+@rpc("any_peer", "reliable")#valid data need
 func change_password_to(password):
 	var id = multiplayer.get_remote_sender_id()
+	
+	if typeof(password) != TYPE_STRING:
+		change_password_to_response.rpc_id(id, -1)
+		return
 	
 	if $Node2D.verify_session(id) == true:
 		for i in user_info:
@@ -365,9 +431,14 @@ func change_password_to(password):
 func change_password_to_response(message): # 1 = error occured
 	pass
 
-@rpc("any_peer", "reliable")
+@rpc("any_peer", "reliable")#valid data need
 func forgot_password(username):
 	var id = multiplayer.get_remote_sender_id()
+	
+	if typeof(username) != TYPE_STRING:
+		forgot_password_response.rpc_id(id, -1)
+		return
+	
 	var bindings = [username]
 	var query = "SELECT email, password FROM user_info WHERE username = ?"
 	db.query_with_bindings(query, bindings)
@@ -443,12 +514,12 @@ func admin_info_request():
 			$Node2D.delete_download_songs_session(id)
 			return
 		else:
-			admin_info_response.rpc_id(id, "not admin", "", "", "", "",null,null)
+			admin_info_response.rpc_id(id, "not admin", "", "", "", "",null)
 			return
 	pass
 	
 @rpc("authority", "reliable")
-func admin_info_response(type:String, username:String, email:String, song_name:String, creator:String, accuracy, rank):
+func admin_info_response(type:String, username:String, email:String, song_name:String, creator:String, accuracy):
 	
 	pass
 

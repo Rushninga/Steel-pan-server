@@ -159,7 +159,7 @@ func delete_download_songs_session(id):
 
 
 func _ready():
-	api_key = "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"
+	api_key = OS.get_environment("email_api")
 	multiplayer.peer_connected.connect(_on_player_connected)
 	multiplayer.peer_disconnected.connect(_on_player_disconnected)
 	db.path = "res://Main.db"
