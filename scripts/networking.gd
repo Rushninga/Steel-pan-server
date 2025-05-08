@@ -39,6 +39,11 @@ func delete_session(id):
 	for i in user_info: 
 		if i.id == id :
 			user_info.erase(i)
+			
+func delete_session_by_username(username):
+	for i in user_info: 
+		if i.username == username :
+			user_info.erase(i)
 
 func find_userID_in_db(username):
 	var bindings = []
@@ -94,7 +99,8 @@ func send_user_info(username_received, email_received, password_received, mode_r
 			var results = db.query_result_by_reference
 			var message #0 = email is valid, 1 = email is already being used
 			if results.size() == 0:
-				delete_session(id) #removes user id if theres a duplicate one in user info	
+				delete_session(id) #removes user id if theres a duplicate one in user info
+				delete_session_by_username(username_received)	
 				valid_email.rpc_id(id, 0)
 				var new_user = user_class.new(id,username_received,email_received,password_received,false)
 				new_user.user_mode = 2
@@ -126,6 +132,7 @@ func send_user_info(username_received, email_received, password_received, mode_r
 
 				if password_received == utf8_plainpassword:
 					delete_session(id)
+					delete_session_by_username(username_received)
 					message = 2
 					
 					#checks to see if the user is an admin, 0 = user is not an admin, 1 = user is an admin
