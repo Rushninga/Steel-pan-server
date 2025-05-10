@@ -54,7 +54,7 @@
   </tr>
   <tr>
     <td>db_key.key</td>
-    <td>Public and private key for database password encryption. (Recomended to generate a new key before exporting: https://cryptotools.net/rsagen <br> All exsisting users in the database must be deleted if this is done.</td>
+    <td>Public and private key for database password encryption. (Recomended to generate a new key before exporting: https://cryptotools.net/rsagen <br> All exsisting users in the database must be deleted if this is done.)</td>
   </tr>
   <tr>
     <td>godot-sqlite</td>
